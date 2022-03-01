@@ -1,13 +1,13 @@
 const router = require('express').Router();
 const { User, Post, Comment, Vote } = require('../../models');
 
-// Response all Users from User table.
+// Respondes all Users from User table.
 router.get('/', (req, res) => {
   // Returns users info from the User table but does not return any passwords.
   User.findAll({
     attributes: { exclude: ['password'] }
   })
-    // Take the data User.findAll returned and response that data in the form of a json object.
+    // Take the data User.findAll returned and respondes that data.
     .then(dbUserData => res.json(dbUserData))
     // Catches err, console.logs it and respondes it with a status of 500 internal server error.
     .catch(err => {
@@ -16,7 +16,7 @@ router.get('/', (req, res) => {
     });
 });
 
-// Response User with a specific id.
+// Respondes User with a specific id.
 router.get('/:id', (req, res) => {
   // Finds User with a specific id and returns that users info
   // Stops User password from being returned.
@@ -50,7 +50,7 @@ router.get('/:id', (req, res) => {
       }
     ]
   })
-    // If no user is exist with this id respond with an err.
+    // If no user exist with this id respond with an err.
     // Else respond user data.
     .then(dbUserData => {
       if (!dbUserData) {
@@ -70,7 +70,7 @@ router.get('/:id', (req, res) => {
 // Creates User
 // Takes input data, puts data into a row of the User table and respondes everything in the new row.
 router.post('/', (req, res) => {
-  // Puts data into a new row inside of User table and returns data inside new row.
+  // Puts new data into a new row inside of User table and returns new data.
   User.create({
     username: req.body.username,
     email: req.body.email,
@@ -143,7 +143,7 @@ router.post('/logout', (req, res) => {
 });
 
 // Hashes new password and Updates user by id in db with new input data.
-// Respondes with new user data.
+// Respondes with number of rows affected.
 router.put('/:id', (req, res) => {
   // Hashes new password then Updates user by id in data base.
   User.update(req.body, {
@@ -153,6 +153,7 @@ router.put('/:id', (req, res) => {
     }
   })
     // If User with this id does not exist respond with err and return.
+    // Else respond with number of rows affected
     .then(dbUserData => {
       if (!dbUserData) {
         res.status(404).json({ message: 'No user found with this id' });
@@ -167,12 +168,16 @@ router.put('/:id', (req, res) => {
     });
 });
 
+// Deletes User by id.
 router.delete('/:id', (req, res) => {
+  // Deletes User from db by id.
   User.destroy({
     where: {
       id: req.params.id
     }
   })
+    // If user with this id does not exist respond with err.
+    // Else respond with number of rows deleted.
     .then(dbUserData => {
       if (!dbUserData) {
         res.status(404).json({ message: 'No user found with this id' });
@@ -180,6 +185,7 @@ router.delete('/:id', (req, res) => {
       }
       res.json(dbUserData);
     })
+    // Catches err, console.logs it and respondes it with a status of 500 internal server error.
     .catch(err => {
       console.log(err);
       res.status(500).json(err);
