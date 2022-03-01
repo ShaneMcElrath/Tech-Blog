@@ -1,19 +1,29 @@
 const router = require('express').Router();
 const { User, Post, Comment, Vote } = require('../../models');
 
-// get all users
+// Response all Users from User table.
 router.get('/', (req, res) => {
+  // Returns users info from the User table but does not return any passwords.
   User.findAll({
     attributes: { exclude: ['password'] }
   })
+    // Take the data User.findAll returned and response that data in the form of a json object.
     .then(dbUserData => res.json(dbUserData))
+    // Catches err, console.logs it and respondes it with a status of 500 internal server error.
     .catch(err => {
       console.log(err);
       res.status(500).json(err);
     });
 });
 
+// Response User with a specific id.
 router.get('/:id', (req, res) => {
+  // Finds User with a specific id and returns that users info
+  // Stops User password from being returned.
+  // Includes all of the data from all of the Users posts in the return.
+  // Includes all of the data from all of thier comments.
+  // Includes the titles of all of the post they commented on.
+  // Includes all the titles of the postes they voted on.
   User.findOne({
     attributes: { exclude: ['password'] },
     where: {
@@ -40,27 +50,34 @@ router.get('/:id', (req, res) => {
       }
     ]
   })
+    // If no user is exist with this id respond with an err.
+    // Else respond user data.
     .then(dbUserData => {
       if (!dbUserData) {
         res.status(404).json({ message: 'No user found with this id' });
         return;
       }
+
       res.json(dbUserData);
     })
+    // Catches err, console.logs it and respondes it with a status of 500 internal server error.
     .catch(err => {
       console.log(err);
       res.status(500).json(err);
     });
 });
 
+// Creates User
+// Takes input data, puts data into a row of the User table and respondes everything in the new row.
 router.post('/', (req, res) => {
-  // expects {username: 'Lernantino', email: 'lernantino@gmail.com', password: 'password1234'}
+  // Puts data into a new row inside of User table and returns data inside new row.
   User.create({
     username: req.body.username,
     email: req.body.email,
     password: req.body.password
   })
     .then(dbUserData => {
+      // Creates session data, logs in the user and, respondes new User data.
       req.session.save(() => {
         req.session.user_id = dbUserData.id;
         req.session.username = dbUserData.username;
@@ -69,31 +86,37 @@ router.post('/', (req, res) => {
         res.json(dbUserData);
       });
     })
+    // Catches err, console.logs it and respondes it with a status of 500 internal server error.
     .catch(err => {
       console.log(err);
       res.status(500).json(err);
     });
 });
 
+// Logs user in and responds with the users data if the email and password input are correct.
 router.post('/login', (req, res) => {
-  // expects {email: 'lernantino@gmail.com', password: 'password1234'}
+  // Finds User with specific email address and returns the users info.
   User.findOne({
     where: {
       email: req.body.email
     }
   }).then(dbUserData => {
+    // If no user exist with that email respond with an err.
     if (!dbUserData) {
       res.status(400).json({ message: 'No user with that email address!' });
       return;
     }
 
+    // Checks if password matches the input.
     const validPassword = dbUserData.checkPassword(req.body.password);
 
+    // If password input is wrong respond with err.
     if (!validPassword) {
       res.status(400).json({ message: 'Incorrect password!' });
       return;
     }
 
+    //Create session data, log user in and respondes with user data and a message.
     req.session.save(() => {
       req.session.user_id = dbUserData.id;
       req.session.username = dbUserData.username;
@@ -104,27 +127,32 @@ router.post('/login', (req, res) => {
   });
 });
 
+
+// Logs user out if user is logged in by destroying session data.
 router.post('/logout', (req, res) => {
+  // If user is logged in destory sesssion data and respond with No Content status.
   if (req.session.loggedIn) {
     req.session.destroy(() => {
       res.status(204).end();
     });
   }
+  // If user is not logged in respond with Not Found.
   else {
     res.status(404).end();
   }
 });
 
+// Hashes new password and Updates user by id in db with new input data.
+// Respondes with new user data.
 router.put('/:id', (req, res) => {
-  // expects {username: 'Lernantino', email: 'lernantino@gmail.com', password: 'password1234'}
-
-  // pass in req.body instead to only update what's passed through
+  // Hashes new password then Updates user by id in data base.
   User.update(req.body, {
     individualHooks: true,
     where: {
       id: req.params.id
     }
   })
+    // If User with this id does not exist respond with err and return.
     .then(dbUserData => {
       if (!dbUserData) {
         res.status(404).json({ message: 'No user found with this id' });
@@ -132,6 +160,7 @@ router.put('/:id', (req, res) => {
       }
       res.json(dbUserData);
     })
+    // Catches err, console.logs it and respondes it with a status of 500 internal server error.
     .catch(err => {
       console.log(err);
       res.status(500).json(err);
